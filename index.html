@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DRAIN_ANGEL_SYNDROME v4.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <style>
+        :root {
+            --terminal-green: #00ff66;
+            --cyber-pink: #ff00ff;
+            --blood-red: #ff0066;
+            --digital-blue: #00ffff;
+            --void-black: #000000;
+            --neon-purple: #9900ff;
+            --ghost-white: #f8f8ff;
+            --occult-gold: #ffd700;
+        }
+
+        @font-face {
+            font-family: 'CyberFont';
+            src: url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'CyberFont', 'Share Tech Mono', monospace;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--void-black);
+            color: var(--terminal-green);
+            overflow: hidden;
+            cursor: none;
+        }
+
+        .custom-cursor {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--cyber-pink);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: difference;
+            transition: transform 0.2s ease;
+        }
+
+        .scene-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .terminal-window {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid var(--cyber-pink);
+            box-shadow: 0 0 10px var(--cyber-pink),
+                       inset 0 0 15px rgba(255, 0, 255, 0.3);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        .terminal-window:hover {
+            box-shadow: 0 0 20px var(--cyber-pink),
+                       inset 0 0 25px rgba(255, 0, 255, 0.5);
+        }
+
+        .terminal-header {
+            background: linear-gradient(90deg, 
+                var(--cyber-pink) 0%, 
+                var(--neon-purple) 50%, 
+                var(--cyber-pink) 100%);
+            color: var(--void-black);
+            padding: 5px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9em;
+        }
+
+        .terminal-content {
+            padding: 15px;
+            color: var(--terminal-green);
+            text-shadow: 0 0 5px var(--terminal-green);
+            height: calc(100% - 30px);
+            overflow: hidden;
+        }
+
+        .cyber-widget {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            border: 1px solid var(--digital-blue);
+            background: rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+        }
+
+        .widget-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .sigil-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            opacity: 0.3;
+        }
+
+        .sigil {
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNNTAgMTBMOTAgOTBIMTBaIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjAwZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==');
+            animation: rotateSigil 20s linear infinite;
+        }
+
+        @keyframes rotateSigil {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+                #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 1s ease-out;
+        }
+
+        #loading-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #loading-bar {
+            width: 300px;
+            height: 2px;
+            background: rgba(255, 0, 255, 0.2);
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #loading-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--cyber-pink);
+            box-shadow: 0 0 10px var(--cyber-pink);
+            transition: width 0.3s ease;
+        }
+
+        #loading-text {
+            color: var(--cyber-pink);
+            font-family: monospace;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 10px;
+        }
+
+        .loading-sigil {
+            width: 100px;
+            height: 100px;
+            border: 2px solid var(--cyber-pink);
+            transform: rotate(45deg);
+            margin: 20px;
+            animation: rotateSigil 4s linear infinite;
+        }
+
+        #netwatch {
+            top: 50px;
+            right: 80px;
+            width: 300px;
+            height: 350px;
+            transform: rotate(-2deg);
+        }
+
+        #daemon-console {
+            top: 30px;
+            left: 60px;
+            width: 400px;
+            height: 300px;
+            transform: rotate(1deg);
+            z-index: 2;
+        }
+
+        #occult-monitor {
+            bottom: 100px;
+            right: 120px;
+            width: 250px;
+            height: 250px;
+            transform: rotate(3deg);
+            z-index: 3;
+        }
+
+        #data-stream {
+            bottom: 80px;
+            left: 100px;
+            width: 400px;
+            height: 200px;
+            transform: rotate(-1deg);
+            z-index: 1;
+        }
+
+        .glitch-text {
+            animation: textGlitch 0.3s infinite;
+            position: relative;
+        }
+
+        @keyframes textGlitch {
+            0% { 
+                text-shadow: 2px 0 var(--cyber-pink), 
+                           -2px 0 var(--digital-blue);
+                transform: translate(0);
+            }
+            25% { 
+                text-shadow: -2px 0 var(--cyber-pink), 
+                            2px 0 var(--digital-blue);
+                transform: translate(1px);
+            }
+            50% { 
+                text-shadow: 1px 0 var(--blood-red), 
+                           -1px 0 var(--terminal-green);
+                transform: translate(-1px);
+            }
+            75% { 
+                text-shadow: -1px 0 var(--blood-red), 
+                            1px 0 var(--terminal-green);
+                transform: translate(1px);
+            }
+            100% { 
+                text-shadow: 2px 0 var(--cyber-pink), 
+                           -2px 0 var(--digital-blue);
+                transform: translate(0);
+            }
+        }
+
+        #system-status {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            border-top: 1px solid var(--terminal-green);
+            padding: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--terminal-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .command-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--cyber-pink);
+            color: var(--terminal-green);
+            font-family: inherit;
+            padding: 5px;
+            margin-top: 10px;
+        }
+
+        .command-input:focus {
+            outline: none;
+            border-bottom-color: var(--digital-blue);
+        }
+
+        .output-text {
+            font-family: monospace;
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+
+        #ritual-circle {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            pointer-events: none;
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--cyber-pink);
+            padding: 10px 20px;
+            color: var(--terminal-green);
+            z-index: 9999;
+            display: none;
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            animation: scanline 6s linear infinite;
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="loading-sigil"></div>
+        <div id="loading-bar">
+            <div id="loading-progress"></div>
+        </div>
+        <div id="loading-text">Initializing DRAIN_ANGEL_SYNDROME...</div>
+    </div>
+    <div class="custom-cursor"></div>
+    <div class="scanline"></div>
+    <div class="scene-container" id="background-scene"></div>
+    <div class="notification" id="system-notification"></div>
+
+    <div id="ritual-circle">
+        <svg viewBox="0 0 100 100">
+            <!-- Ritual circle SVG code here -->
+            <circle cx="50" cy="50" r="45" fill="none" stroke="var(--occult-gold)" stroke-width="0.5"/>
+            <path d="M50 5L95 95H5Z" fill="none" stroke="var(--occult-gold)" stroke-width="0.5"/>
+            <circle cx="50" cy="50" r="30" fill="none" stroke="var(--occult-gold)" stroke-width="0.5"/>
+            <path d="M20 50L80 50M50 20L50 80" stroke="var(--occult-gold)" stroke-width="0.5"/>
+        </svg>
+    </div>
+
+    <!-- Network Monitor -->
+    <div id="netwatch" class="terminal-window">
+        <div class="terminal-header">
+            <span>NETWATCH.exe</span>
+            <span class="window-controls">[ ]</span>
+        </div>
+        <div class="terminal-content">
+            <canvas id="radar-display" class="widget-canvas"></canvas>
+            <div id="network-stats" class="output-text"></div>
+        </div>
+    </div>
+
+    <!-- System Console -->
+    <div id="daemon-console" class="terminal-window">
+        <div class="terminal-header">
+            <span>DAEMON.sys</span>
+            <span class="window-controls">[ ]</span>
+        </div>
+        <div class="terminal-content">
+            <div id="daemon-output" class="output-text"></div>
+            <input type="text" id="daemon-input" class="command-input" 
+                   placeholder="_" spellcheck="false">
+        </div>
+    </div>
+
+    <!-- Occult Monitor -->
+    <div id="occult-monitor" class="terminal-window">
+        <div class="terminal-header">
+            <span>SIGIL.sys</span>
+            <span class="window-controls">[ ]</span>
+        </div>
+        <div class="terminal-content">
+            <canvas id="sigil-canvas" class="widget-canvas"></canvas>
+            <div class="sigil-container">
+                <div class="sigil"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Stream -->
+    <div id="data-stream" class="terminal-window">
+        <div class="terminal-header">
+            <span>DATASTREAM.exe</span>
+            <span class="window-controls">[ ]</span>
+        </div>
+        <div class="terminal-content">
+            <canvas id="matrix-canvas" class="widget-canvas"></canvas>
+        </div>
+    </div>
+
+    <!-- System Status Bar -->
+    <div id="system-status">
+        <div class="status-item">
+            <div class="status-indicator"></div>
+            <span>SYS:ACTIVE</span>
+        </div>
+        <span class="glitch-text">DRAIN_ANGEL_SYNDROME v4.0</span>
+        <div class="status-item" id="sys-time"></div>
+    </div>
+    <script>
+        // Custom Cursor
+        const cursor = document.querySelector('.custom-cursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        // Background Scene Setup with Enhanced Effects
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('background-scene').appendChild(renderer.domElement);
+
+        // Create Enhanced Grid
+        const gridHelper = new THREE.GridHelper(200, 50, 0xff00ff, 0x00ffff);
+        scene.add(gridHelper);
+
+        // Create Particle System
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCnt = 10000;
+        const posArray = new Float32Array(particlesCnt * 3);
+        const colorsArray = new Float32Array(particlesCnt * 3);
+
+        for(let i = 0; i < particlesCnt * 3; i += 3) {
+            // Position
+            posArray[i] = (Math.random() - 0.5) * 100;
+            posArray[i + 1] = (Math.random() - 0.5) * 100;
+            posArray[i + 2] = (Math.random() - 0.5) * 100;
+            
+            // Color
+            colorsArray[i] = Math.random();
+            colorsArray[i + 1] = Math.random() * 0.5;
+            colorsArray[i + 2] = Math.random();
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorsArray, 3));
+
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.01,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        // Create Cyber Sigils
+        const sigilGeometry = new THREE.BufferGeometry();
+        const sigilVertices = [];
+        const sigilCount = 20;
+
+        for(let i = 0; i < sigilCount; i++) {
+            const angle = (i / sigilCount) * Math.PI * 2;
+            const radius = 30;
+            sigilVertices.push(
+                Math.cos(angle) * radius,
+                Math.sin(angle) * radius,
+                0
+            );
+        }
+
+        sigilGeometry.setAttribute('position', new THREE.Float32BufferAttribute(sigilVertices, 3));
+        const sigilMaterial = new THREE.LineBasicMaterial({ color: 0xff00ff });
+        const sigilMesh = new THREE.LineLoop(sigilGeometry, sigilMaterial);
+        scene.add(sigilMesh);
+
+        camera.position.z = 30;
+        camera.position.y = 15;
+        camera.rotation.x = -0.5;
+
+        // Radar Display
+        const radarCanvas = document.getElementById('radar-display');
+        const radarCtx = radarCanvas.getContext('2d');
+        radarCanvas.width = radarCanvas.clientWidth;
+        radarCanvas.height = radarCanvas.clientHeight;
+        let radarAngle = 0;
+
+        function drawRadar() {
+            // Clear with fade effect
+            radarCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            radarCtx.fillRect(0, 0, radarCanvas.width, radarCanvas.height);
+
+            const centerX = radarCanvas.width / 2;
+            const centerY = radarCanvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 20;
+
+            // Draw radar circles
+            for(let i = 1; i <= 3; i++) {
+                radarCtx.beginPath();
+                radarCtx.arc(centerX, centerY, radius * (i/3), 0, Math.PI * 2);
+                radarCtx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+                radarCtx.stroke();
+            }
+
+            // Draw scanning line
+            radarCtx.beginPath();
+            radarCtx.moveTo(centerX, centerY);
+            radarCtx.arc(centerX, centerY, radius, radarAngle, radarAngle + 0.1);
+            radarCtx.strokeStyle = '#00ffff';
+            radarCtx.lineWidth = 2;
+            radarCtx.stroke();
+
+            // Draw blips
+            if(Math.random() > 0.7) {
+                const blipDistance = Math.random() * radius;
+                const blipAngle = Math.random() * Math.PI * 2;
+                const blipX = centerX + Math.cos(blipAngle) * blipDistance;
+                const blipY = centerY + Math.sin(blipAngle) * blipDistance;
+                
+                radarCtx.fillStyle = '#ff00ff';
+                radarCtx.beginPath();
+                radarCtx.arc(blipX, blipY, 2, 0, Math.PI * 2);
+                radarCtx.fill();
+            }
+
+            radarAngle += 0.03;
+            if(radarAngle > Math.PI * 2) radarAngle = 0;
+        }
+
+        // Matrix rain effect
+        const matrixCanvas = document.getElementById('matrix-canvas');
+        const matrixCtx = matrixCanvas.getContext('2d');
+        matrixCanvas.width = matrixCanvas.clientWidth;
+        matrixCanvas.height = matrixCanvas.clientHeight;
+
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
+        const drops = Array(Math.floor(matrixCanvas.width / 10)).fill(1);
+        const charSize = 10;
+
+        function drawMatrix() {
+            matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+
+            matrixCtx.fillStyle = '#0f0';
+            matrixCtx.font = charSize + 'px monospace';
+
+            for(let i = 0; i < drops.length; i++) {
+                const char = chars[Math.floor(Math.random() * chars.length)];
+                const x = i * charSize;
+                const y = drops[i] * charSize;
+
+                // Random color variations
+                const hue = Math.random() > 0.98 ? 'ff00ff' : '00ff00';
+                matrixCtx.fillStyle = '#' + hue;
+                matrixCtx.fillText(char, x, y);
+
+                if(y > matrixCanvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        // Sigil Canvas
+        const sigilCanvas = document.getElementById('sigil-canvas');
+        const sigilCtx = sigilCanvas.getContext('2d');
+        sigilCanvas.width = sigilCanvas.clientWidth;
+        sigilCanvas.height = sigilCanvas.clientHeight;
+
+        function drawSigil() {
+            sigilCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            sigilCtx.fillRect(0, 0, sigilCanvas.width, sigilCanvas.height);
+
+            const centerX = sigilCanvas.width / 2;
+            const centerY = sigilCanvas.height / 2;
+            const time = Date.now() * 0.001;
+
+            // Draw occult symbols
+            sigilCtx.strokeStyle = '#ff00ff';
+            sigilCtx.lineWidth = 1;
+
+            // Pentagram
+            const radius = 50;
+            const points = [];
+            for(let i = 0; i < 5; i++) {
+                const angle = time + (i * Math.PI * 0.4);
+                points.push({
+                    x: centerX + Math.cos(angle) * radius,
+                    y: centerY + Math.sin(angle) * radius
+                });
+            }
+
+            sigilCtx.beginPath();
+            sigilCtx.moveTo(points[0].x, points[0].y);
+            for(let i = 2; i < points.length; i += 2) {
+                sigilCtx.lineTo(points[i].x, points[i].y);
+            }
+            sigilCtx.lineTo(points[1].x, points[1].y);
+            for(let i = 3; i < points.length; i += 2) {
+                sigilCtx.lineTo(points[i].x, points[i].y);
+            }
+            sigilCtx.closePath();
+            sigilCtx.stroke();
+        }
+
+        // Daemon Console
+        const daemonOutput = document.getElementById('daemon-output');
+        const daemonInput = document.getElementById('daemon-input');
+        const commands = {
+            'help': () => 'Available commands: help, clear, scan, ritual, summon, status',
+            'clear': () => {
+                daemonOutput.innerHTML = '';
+                return 'Console cleared.';
+            },
+            'scan': () => {
+                const entities = ['GHOST_PROCESS', 'CYBER_DAEMON', 'DIGITAL_SPIRIT', 'VOID_ENTITY'];
+                return `Scanning ethereal plane...\nDetected entities: ${entities[Math.floor(Math.random() * entities.length)]}`;
+            },
+            'ritual': () => 'Initiating digital ritual...\nDrawing sigils...\nChanneling void energy...',
+            'summon': () => 'ERROR: Insufficient permissions. Requires SYSADMIN_WITCH clearance.',
+            'status': () => `System Status:
+                Entropy Level: ${Math.floor(Math.random() * 100)}%
+                Void Connection: STABLE
+                Sigil Integrity: OPTIMAL
+                Reality Anchor: HOLDING`
+        };
+
+        daemonInput.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter') {
+                const cmd = daemonInput.value.toLowerCase().trim();
+                const response = commands[cmd] ? commands[cmd]() : 'Command not recognized. Type "help" for available commands.';
+                
+                daemonOutput.innerHTML += `> ${daemonInput.value}\n${response}\n\n`;
+                daemonInput.value = '';
+                daemonOutput.scrollTop = daemonOutput.scrollHeight;
+            }
+        });
+
+        // System status updates
+        function updateSystemStatus() {
+            document.getElementById('sys-time').textContent = 
+                new Date().toLocaleTimeString();
+
+            // Update network stats
+            const networkStats = document.getElementById('network-stats');
+            networkStats.innerHTML = `
+                ACTIVE_NODES: ${Math.floor(Math.random() * 100)}
+                SIGNAL_STRENGTH: ${Array(Math.floor(Math.random() * 5) + 1).fill('▮').join('')}
+                VOID_RESONANCE: ${Math.floor(Math.random() * 100)}%
+            `;
+        }
+
+        // Notification system
+        function showNotification(message) {
+            const notification = document.getElementById('system-notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        // Window dragging system
+        document.querySelectorAll('.terminal-window').forEach(win => {
+            const header = win.querySelector('.terminal-header');
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+
+            header.addEventListener('mousedown', e => {
+                isDragging = true;
+                initialX = e.clientX - win.offsetLeft;
+                initialY = e.clientY - win.offsetTop;
+            });
+
+            document.addEventListener('mousemove', e => {
+                if(isDragging) {
+                    e.preventDefault();
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                    win.style.left = currentX + 'px';
+                    win.style.top = currentY + 'px';
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+        });
+
+        // Main animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Update Three.js scene
+            particlesMesh.rotation.y += 0.0005;
+            particlesMesh.rotation.x += 0.0002;
+            sigilMesh.rotation.z += 0.001;
+            
+            gridHelper.position.z += 0.1;
+            if(gridHelper.position.z > 1) gridHelper.position.z = 0;
+            
+            // Update all canvases
+            drawRadar();
+            drawMatrix();
+            drawSigil();
+            
+            renderer.render(scene, camera);
+        }
+
+        // Initialize
+        function init() {
+            // Loading sequence
+            const loadingScreen = document.getElementById('loading-screen');
+            const loadingProgress = document.getElementById('loading-progress');
+            const loadingText = document.getElementById('loading-text');
+            
+            const loadingSteps = [
+                'INITIALIZING VOID PROTOCOLS...',
+                'CONNECTING TO DIGITAL ETHER...',
+                'SUMMONING CYBER ENTITIES...',
+                'CALIBRATING REALITY ANCHORS...',
+                'ESTABLISHING NEURAL LINK...',
+                'ACTIVATING DRAIN_ANGEL_SYNDROME...'
+            ];
+            
+            let currentStep = 0;
+            const loadingInterval = setInterval(() => {
+                const progress = (currentStep + 1) * (100 / loadingSteps.length);
+                loadingProgress.style.width = `${progress}%`;
+                loadingText.textContent = loadingSteps[currentStep];
+                
+                if (currentStep >= loadingSteps.length - 1) {
+                    clearInterval(loadingInterval);
+                    setTimeout(() => {
+                        loadingScreen.classList.add('fade-out');
+                        // Initialize the rest of the system
+                        animate();
+                        setInterval(updateSystemStatus, 1000);
+                        showNotification('DRAIN_ANGEL_SYNDROME v4.0 initialized');
+                    }, 1000);
+                }
+                currentStep++;
+            }, 1000);
+
+            // Randomly offset window positions slightly
+            document.querySelectorAll('.terminal-window').forEach(window => {
+                const randomOffsetX = (Math.random() - 0.5) * 20;
+                const randomOffsetY = (Math.random() - 0.5) * 20;
+                const currentTransform = window.style.transform || '';
+                window.style.transform = `${currentTransform} translate(${randomOffsetX}px, ${randomOffsetY}px)`;
+            });
+        }
+
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            // Update Three.js
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            // Update canvases
+            radarCanvas.width = radarCanvas.clientWidth;
+            radarCanvas.height = radarCanvas.clientHeight;
+            matrixCanvas.width = matrixCanvas.clientWidth;
+            matrixCanvas.height = matrixCanvas.clientHeight;
+            sigilCanvas.width = sigilCanvas.clientWidth;
+            sigilCanvas.height = sigilCanvas.clientHeight;
+        });
+
+        init();
+    </script>
+</body>
+</html>
